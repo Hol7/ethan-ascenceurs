@@ -1,30 +1,86 @@
+# services:
+#   db:
+#     image: mariadb:10.6
+#     restart: always
+#     environment:
+#       MYSQL_ROOT_PASSWORD: 1234  # Change this!
+#       MYSQL_DATABASE: wordpress
+#       MYSQL_USER: wordpress
+#       MYSQL_PASSWORD: 1234  # Change this!
+#     volumes:
+#       - db_data:/var/lib/mysql
+
+#   wordpress:
+#     depends_on:
+#       - db
+#     image: wordpress:6.6-php8.3-apache
+#     restart: always
+#     environment:
+#       WORDPRESS_DB_HOST: db:3306
+#       WORDPRESS_DB_USER: wordpress
+#       WORDPRESS_DB_PASSWORD: 1234  # Match above
+#       WORDPRESS_DB_NAME: wordpress
+#     volumes:
+#       - wp_data:/var/www/html
+#     ports:
+#       - "8090:80"  # Map container port 80 to localhost:8080
+
+# volumes:
+#   db_data: {}
+#   wp_data: {}
+
+
 services:
   db:
     image: mariadb:10.6
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: 1234  # Change this!
+      MYSQL_ROOT_PASSWORD: 1234
       MYSQL_DATABASE: wordpress
       MYSQL_USER: wordpress
-      MYSQL_PASSWORD: 1234  # Change this!
+      MYSQL_PASSWORD: 1234
     volumes:
       - db_data:/var/lib/mysql
+    networks:
+      - traefik
 
   wordpress:
+    image: wordpress:6.6-php8.3-apache
     depends_on:
       - db
-    image: wordpress:6.6-php8.3-apache
     restart: always
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_USER: wordpress
-      WORDPRESS_DB_PASSWORD: 1234  # Match above
+      WORDPRESS_DB_PASSWORD: 1234
       WORDPRESS_DB_NAME: wordpress
     volumes:
       - wp_data:/var/www/html
-    ports:
-      - "8090:80"  # Map container port 80 to localhost:8080
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+
+      # -------------------------
+      #  🔐 HTTPS (main router)
+      # -------------------------
+      - "traefik.http.routers.wordpress.rule=Host(`ethan-ascenceur.com`)"
+      - "traefik.http.routers.wordpress.entrypoints=websecure"
+      - "traefik.http.routers.wordpress.tls.certresolver=letsencrypt"
+      - "traefik.http.services.wordpress.loadbalancer.server.port=80"
+
+      # ------------------------------------------------------
+      #  🔁 HTTP → HTTPS (force redirect)
+      # ------------------------------------------------------
+      - "traefik.http.routers.wordpress-http.rule=Host(`ethan-ascenceur.com`)"
+      - "traefik.http.routers.wordpress-http.entrypoints=web"
+      - "traefik.http.routers.wordpress-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
 volumes:
   db_data: {}
   wp_data: {}
+
+networks:
+  traefik:
+    external: true
