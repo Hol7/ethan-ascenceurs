@@ -1,34 +1,4 @@
-# services:
-#   db:
-#     image: mariadb:10.6
-#     restart: always
-#     environment:
-#       MYSQL_ROOT_PASSWORD: 1234  # Change this!
-#       MYSQL_DATABASE: wordpress
-#       MYSQL_USER: wordpress
-#       MYSQL_PASSWORD: 1234  # Change this!
-#     volumes:
-#       - db_data:/var/lib/mysql
-
-#   wordpress:
-#     depends_on:
-#       - db
-#     image: wordpress:6.6-php8.3-apache
-#     restart: always
-#     environment:
-#       WORDPRESS_DB_HOST: db:3306
-#       WORDPRESS_DB_USER: wordpress
-#       WORDPRESS_DB_PASSWORD: 1234  # Match above
-#       WORDPRESS_DB_NAME: wordpress
-#     volumes:
-#       - wp_data:/var/www/html
-#     ports:
-#       - "8090:80"  # Map container port 80 to localhost:8080
-
-# volumes:
-#   db_data: {}
-#   wp_data: {}
-
+version: "3.9"
 
 services:
   db:
@@ -61,30 +31,117 @@ services:
     labels:
       - "traefik.enable=true"
 
-      # =========================
-      # MAIN DOMAIN (NEW)
-      # =========================
-      - "traefik.http.routers.wp-main.rule=Host(`ethan-ascenseur.com`)"
-      - "traefik.http.routers.wp-main.entrypoints=websecure"
-      - "traefik.http.routers.wp-main.tls.certresolver=letsencrypt"
-      - "traefik.http.services.wp-main.loadbalancer.server.port=80"
+      # 🔐 HTTPS router (MAIN)
+      - "traefik.http.routers.ethan-wp.rule=Host(`ethan-ascenseur.com`)"
+      - "traefik.http.routers.ethan-wp.entrypoints=websecure"
+      - "traefik.http.routers.ethan-wp.tls.certresolver=letsencrypt"
 
-      # =========================
-      # OLD DOMAIN → REDIRECT
-      # =========================
-      - "traefik.http.routers.wp-old.rule=Host(`ethan-ascenceur.com`)"
-      - "traefik.http.routers.wp-old.entrypoints=websecure"
-      - "traefik.http.routers.wp-old.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.wp-old.middlewares=redirect-old-to-new"
+      # 🔁 HTTP → HTTPS redirect
+      - "traefik.http.routers.ethan-wp-http.rule=Host(`ethan-ascenseur.com`)"
+      - "traefik.http.routers.ethan-wp-http.entrypoints=web"
+      - "traefik.http.routers.ethan-wp-http.middlewares=redirect-to-https"
 
-      - "traefik.http.middlewares.redirect-old-to-new.redirectregex.regex=^https?://ethan-ascenceur.com/(.*)"
-      - "traefik.http.middlewares.redirect-old-to-new.redirectregex.replacement=https://ethan-ascenseur.com/$$1"
-      - "traefik.http.middlewares.redirect-old-to-new.redirectregex.permanent=true"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+      # 🐳 Apache listens on 80 INSIDE container (this is CORRECT)
+      - "traefik.http.services.ethan-wp.loadbalancer.server.port=80"
 
 volumes:
-  db_data: {}
-  wp_data: {}
+  db_data:
+  wp_data:
 
 networks:
   traefik:
     external: true
+
+
+# services:
+#   db:
+#     image: mariadb:10.6
+#     restart: always
+#     environment:
+#       MYSQL_ROOT_PASSWORD: 1234  # Change this!
+#       MYSQL_DATABASE: wordpress
+#       MYSQL_USER: wordpress
+#       MYSQL_PASSWORD: 1234  # Change this!
+#     volumes:
+#       - db_data:/var/lib/mysql
+
+#   wordpress:
+#     depends_on:
+#       - db
+#     image: wordpress:6.6-php8.3-apache
+#     restart: always
+#     environment:
+#       WORDPRESS_DB_HOST: db:3306
+#       WORDPRESS_DB_USER: wordpress
+#       WORDPRESS_DB_PASSWORD: 1234  # Match above
+#       WORDPRESS_DB_NAME: wordpress
+#     volumes:
+#       - wp_data:/var/www/html
+#     ports:
+#       - "8090:80"  # Map container port 80 to localhost:8080
+
+# volumes:
+#   db_data: {}
+#   wp_data: {}
+
+
+# services:
+#   db:
+#     image: mariadb:10.6
+#     restart: always
+#     environment:
+#       MYSQL_ROOT_PASSWORD: 1234
+#       MYSQL_DATABASE: wordpress
+#       MYSQL_USER: wordpress
+#       MYSQL_PASSWORD: 1234
+#     volumes:
+#       - db_data:/var/lib/mysql
+#     networks:
+#       - traefik
+
+#   wordpress:
+#     image: wordpress:6.8.3-php8.2-apache
+#     depends_on:
+#       - db
+#     restart: always
+#     environment:
+#       WORDPRESS_DB_HOST: db:3306
+#       WORDPRESS_DB_USER: wordpress
+#       WORDPRESS_DB_PASSWORD: 1234
+#       WORDPRESS_DB_NAME: wordpress
+#     volumes:
+#       - wp_data:/var/www/html
+#     networks:
+#       - traefik
+#     labels:
+#       - "traefik.enable=true"
+
+#       # =========================
+#       # MAIN DOMAIN (NEW)
+#       # =========================
+#       - "traefik.http.routers.wp-main.rule=Host(`ethan-ascenseur.com`)"
+#       - "traefik.http.routers.wp-main.entrypoints=websecure"
+#       - "traefik.http.routers.wp-main.tls.certresolver=letsencrypt"
+#       - "traefik.http.services.wp-main.loadbalancer.server.port=80"
+
+#       # =========================
+#       # OLD DOMAIN → REDIRECT
+#       # =========================
+#       - "traefik.http.routers.wp-old.rule=Host(`ethan-ascenceur.com`)"
+#       - "traefik.http.routers.wp-old.entrypoints=websecure"
+#       - "traefik.http.routers.wp-old.tls.certresolver=letsencrypt"
+#       - "traefik.http.routers.wp-old.middlewares=redirect-old-to-new"
+
+#       - "traefik.http.middlewares.redirect-old-to-new.redirectregex.regex=^https?://ethan-ascenceur.com/(.*)"
+#       - "traefik.http.middlewares.redirect-old-to-new.redirectregex.replacement=https://ethan-ascenseur.com/$$1"
+#       - "traefik.http.middlewares.redirect-old-to-new.redirectregex.permanent=true"
+
+# volumes:
+#   db_data: {}
+#   wp_data: {}
+
+# networks:
+#   traefik:
+#     external: true
