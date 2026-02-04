@@ -61,21 +61,25 @@ services:
     labels:
       - "traefik.enable=true"
 
-      # -------------------------
-      #  🔐 HTTPS (main router)
-      # -------------------------
-      - "traefik.http.routers.wordpress.rule=Host(`ethan-ascenseur.com`)"
-      - "traefik.http.routers.wordpress.entrypoints=websecure"
-      - "traefik.http.routers.wordpress.tls.certresolver=letsencrypt"
-      - "traefik.http.services.wordpress.loadbalancer.server.port=80"
+      # =========================
+      # MAIN DOMAIN (NEW)
+      # =========================
+      - "traefik.http.routers.wp-main.rule=Host(`ethan-ascenseur.com`)"
+      - "traefik.http.routers.wp-main.entrypoints=websecure"
+      - "traefik.http.routers.wp-main.tls.certresolver=letsencrypt"
+      - "traefik.http.services.wp-main.loadbalancer.server.port=80"
 
-      # ------------------------------------------------------
-      #  🔁 HTTP → HTTPS (force redirect)
-      # ------------------------------------------------------
-      - "traefik.http.routers.wordpress-http.rule=Host(`ethan-ascenseur.com`)"
-      - "traefik.http.routers.wordpress-http.entrypoints=web"
-      - "traefik.http.routers.wordpress-http.middlewares=redirect-to-https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      # =========================
+      # OLD DOMAIN → REDIRECT
+      # =========================
+      - "traefik.http.routers.wp-old.rule=Host(`ethan-ascenceur.com`)"
+      - "traefik.http.routers.wp-old.entrypoints=websecure"
+      - "traefik.http.routers.wp-old.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.wp-old.middlewares=redirect-old-to-new"
+
+      - "traefik.http.middlewares.redirect-old-to-new.redirectregex.regex=^https?://ethan-ascenceur.com/(.*)"
+      - "traefik.http.middlewares.redirect-old-to-new.redirectregex.replacement=https://ethan-ascenseur.com/$$1"
+      - "traefik.http.middlewares.redirect-old-to-new.redirectregex.permanent=true"
 
 volumes:
   db_data: {}
