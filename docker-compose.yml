@@ -29,7 +29,7 @@ services:
     labels:
       - "traefik.enable=true"
 
-      # 🔐 HTTPS (main)
+      # 🌍 Domain
       - "traefik.http.routers.ethan-wp.rule=Host(`ethan-ascenseur.com`,`www.ethan-ascenseur.com`)"
       - "traefik.http.routers.ethan-wp.entrypoints=websecure"
       - "traefik.http.routers.ethan-wp.tls.certresolver=letsencrypt"
@@ -40,6 +40,9 @@ services:
       - "traefik.http.routers.ethan-wp-http.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
+      # ✅ THIS WAS MISSING
+      - "traefik.http.services.ethan-wp.loadbalancer.server.port=80"
+
 volumes:
   db_data:
   wp_data:
@@ -47,6 +50,7 @@ volumes:
 networks:
   traefik:
     external: true
+
 
 
 # version: "3.9"
